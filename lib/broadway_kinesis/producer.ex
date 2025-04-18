@@ -39,6 +39,7 @@ defmodule BroadwayKinesis.Producer do
 
       require BroadwayKinesis.SubscribeToShard
       require ExAws
+      require Logger
       alias BroadwayKinesis.Producer.State
 
       @spec init_state(Enum.t()) :: State.t()
