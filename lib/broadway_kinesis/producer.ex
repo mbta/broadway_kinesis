@@ -36,47 +36,14 @@ defmodule BroadwayKinesis.Producer do
       use GenStage
 
       @behaviour Broadway.Producer
-      @persistent_state_opts [save_state_time: 60 * 1000]
       @reconnection_delay 70 * 1000
 
       require SubscribeToShard
       require ExAws
       alias BroadwayKinesis.Producer.State
 
-      use PersistentState,
-        state_filename: unquote(state_filename),
-        new_state: %State{},
-        restore_fn: &restore_state/3,
-        current_version: 1
-
-      @spec restore_state(any, non_neg_integer, non_neg_integer) :: {:ok, State.t()} | :error
-      def restore_state(
-            %State{stream_name: saved_stream_name, resume_position: saved_resume_position},
-            _,
-            _
-          ) do
-        if saved_stream_name == unquote(stream_name) do
-          log("event=position_restored resume_position=#{inspect(saved_resume_position)}")
-
-          {:ok,
-           %State{
-             resume_position: saved_resume_position
-           }}
-        else
-          warn(
-            "event=position_reset old_stream=#{saved_stream_name} new_stream=#{unquote(stream_name)}"
-          )
-
-          {:ok, %State{resume_position: :latest}}
-        end
-      end
-
-      def restore_state(_, _, _), do: :error
-
       @spec init_state(Enum.t()) :: State.t()
       defp init_state(overrides) do
-        {:ok, state} = init_persistent_state(@persistent_state_opts)
-
         struct!(
           %{state | consumer_arn: unquote(consumer_arn), stream_name: unquote(stream_name)},
           overrides
