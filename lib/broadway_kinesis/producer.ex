@@ -37,7 +37,7 @@ defmodule BroadwayKinesis.Producer do
       @behaviour Broadway.Producer
       @reconnection_delay 70 * 1000
 
-      require SubscribeToShard
+      require BroadwayKinesis.SubscribeToShard
       require ExAws
       alias BroadwayKinesis.Producer.State
 
@@ -76,8 +76,8 @@ defmodule BroadwayKinesis.Producer do
 
       @impl true
       def handle_info(message, %{conn: conn} = state)
-          when SubscribeToShard.is_message(conn, message) do
-        case SubscribeToShard.stream(conn, message) do
+          when BroadwayKinesis.SubscribeToShard.is_message(conn, message) do
+        case BroadwayKinesis.SubscribeToShard.stream(conn, message) do
           {:ok, new_conn, events} ->
             ProducerRegistry.update_value(state, true)
 
