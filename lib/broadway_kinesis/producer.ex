@@ -55,7 +55,7 @@ defmodule BroadwayKinesis.Producer do
 
       @impl true
       def init(opts) do
-        state_overrides = Keyword.get(opts, :state, [])
+        state_overrides = Keyword.get(opts, :state, %{})
         enable? = Keyword.get(opts, :enable?, true)
 
         %{
