@@ -61,7 +61,7 @@ defmodule BroadwayKinesis.Producer do
           stream_name: stream_name
         } = state = init_state(state_overrides)
 
-        Logger.info("#{inspect(__MODULE__)} AWS.Producer started")
+        Logger.info("#{inspect(__MODULE__)} BroadwayKinesis.Producer started")
 
         case enable? do
           true ->
