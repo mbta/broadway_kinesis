@@ -44,8 +44,11 @@ defmodule BroadwayKinesis.Producer do
       @spec init_state(Enum.t()) :: State.t()
       defp init_state(overrides) do
         struct!(
-          %{state | consumer_arn: unquote(consumer_arn), stream_name: unquote(stream_name)},
-          overrides
+          State,
+          Map.merge(
+            %{consumer_arn: unquote(consumer_arn), stream_name: unquote(stream_name)},
+            overrides
+          )
         )
       end
 
