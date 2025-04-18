@@ -5,9 +5,9 @@ defmodule BroadwayKinesis.Producer do
 
   defmodule State do
     @type t :: %__MODULE__{
-            conn: SubscribeToShard.t() | nil,
+            conn: BroadwayKinesis.SubscribeToShard.t() | nil,
             consumer_arn: String.t(),
-            resume_position: SubscribeToShard.starting_position(),
+            resume_position: BroadwayKinesis.SubscribeToShard.starting_position(),
             stream_name: String.t()
           }
 

@@ -22,6 +22,7 @@ defmodule BroadwayKinesis.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:bypass, "~> 2.1", only: :test},
       {:event_stream, "~> 0.1.0"},
       {:ex_aws, "~> 2.1"},
