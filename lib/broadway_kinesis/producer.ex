@@ -158,12 +158,6 @@ defmodule BroadwayKinesis.Producer do
         {:noreply, [], state}
       end
 
-      def remove_state_from_disk do
-        log("deleting persistent state from disk")
-        filename = get_filename()
-        File.exists?(filename) && File.rm!(filename)
-      end
-
       defp retry_conn(state, events, error, monitor_msg) do
         if is_nil(state.monitor_pid) do
           if not is_nil(state.conn), do: Mint.HTTP2.close(state.conn.conn)
