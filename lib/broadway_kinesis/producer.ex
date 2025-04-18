@@ -25,7 +25,6 @@ defmodule BroadwayKinesis.Producer do
   end
 
   defmacro __using__(
-             state_filename: state_filename,
              consumer_arn: consumer_arn,
              stream_name: stream_name
            ) do
@@ -199,10 +198,6 @@ defmodule BroadwayKinesis.Producer do
       defp log(message), do: Logger.info("#{__MODULE__}: #{message}")
       defp warn(message), do: Logger.warning("#{__MODULE__}: #{message}")
       defp error(message), do: Logger.error("#{__MODULE__}: #{message}")
-
-      defp get_filename,
-        do:
-          :rtr |> Application.get_env(:persistent_state_dir) |> Path.join(unquote(state_filename))
     end
   end
 end
