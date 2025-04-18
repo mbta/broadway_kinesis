@@ -1,7 +1,7 @@
 defmodule BroadwayKinesis.Producer do
   require BroadwayKinesis.SubscribeToShard
   require ExAws
-  alias AWS.ProducerRegistry
+  alias BroadwayKinesis.ProducerRegistry
 
   defmodule State do
     @type t :: %__MODULE__{
@@ -41,7 +41,7 @@ defmodule BroadwayKinesis.Producer do
 
       require SubscribeToShard
       require ExAws
-      alias AWS.Producer.State
+      alias BroadwayKinesis.Producer.State
 
       use PersistentState,
         state_filename: unquote(state_filename),
@@ -217,7 +217,7 @@ defmodule BroadwayKinesis.Producer do
             else: {:after_sequence_number, state.resume_position}
 
         result =
-          SubscribeToShard.subscribe(
+          BroadwayKinesis.SubscribeToShard.subscribe(
             unquote(consumer_arn),
             shard_id,
             resume_position,
