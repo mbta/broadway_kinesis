@@ -66,15 +66,13 @@ defmodule BroadwayKinesis.Producer do
 
         Logger.info("#{inspect(__MODULE__)} BroadwayKinesis.Producer started")
 
-        case enable? do
-          true ->
-            {:ok, conn} = subscribe_to_shard(state)
-            ProducerRegistry.register(state)
-            {:producer, %{state | conn: conn, conn_state: :established}}
-
-          false ->
-            ProducerRegistry.unregister(state)
-            {:producer, %{state | conn: :disabled, conn_state: :disabled}}
+        if enable? do
+          {:ok, conn} = subscribe_to_shard(state)
+          ProducerRegistry.register(state)
+          {:producer, %{state | conn: conn, conn_state: :established}}
+        else
+          ProducerRegistry.unregister(state)
+          {:producer, %{state | conn: :disabled, conn_state: :disabled}}
         end
       end
 
