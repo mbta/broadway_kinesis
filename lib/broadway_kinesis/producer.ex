@@ -64,7 +64,7 @@ defmodule BroadwayKinesis.Producer do
           stream_name: stream_name
         } = state = init_state(state_overrides)
 
-        Logger.info("#{inspect(__MODULE__)} BroadwayKinesis.Producer started")
+        log("BroadwayKinesis.Producer started")
 
         if enable? do
           {:ok, conn} = subscribe_to_shard(state)
@@ -83,14 +83,14 @@ defmodule BroadwayKinesis.Producer do
           {:ok, new_conn, events} ->
             ProducerRegistry.update_value(state, true)
 
-            Logger.info("#{inspect(__MODULE__)} handle_info_success")
+            log("handle_info_success")
 
             {:noreply, events, %{state | conn: new_conn, conn_state: :normal}}
 
           {:error, {"ResourceInUseException", _} = error, events} ->
             ProducerRegistry.update_value(state, false)
 
-            Logger.info("#{inspect(__MODULE__)} handle_info_error")
+            log("handle_info_error")
 
             warn("event=resource_in_use_exception #{inspect(error)}")
 
@@ -99,7 +99,7 @@ defmodule BroadwayKinesis.Producer do
           {:error, %Mint.TransportError{reason: :closed} = error, events} ->
             ProducerRegistry.update_value(state, false)
 
-            Logger.info("#{inspect(__MODULE__)} handle_info_error")
+            log("handle_info_error")
 
             warn("event=mint_transport_error #{inspect(error)}")
 
@@ -108,7 +108,7 @@ defmodule BroadwayKinesis.Producer do
           {:error, {:http_error, _, _} = error, events} ->
             ProducerRegistry.update_value(state, false)
 
-            Logger.info("#{inspect(__MODULE__)} handle_info_error")
+            log("handle_info_error")
 
             warn("event=http_error #{inspect(error)}")
 
@@ -117,7 +117,7 @@ defmodule BroadwayKinesis.Producer do
           {:error, :closed = error, events} ->
             ProducerRegistry.update_value(state, false)
 
-            Logger.info("#{inspect(__MODULE__)} handle_info_error")
+            log("handle_info_error")
 
             warn("event=subscribe_to_shard_closed #{inspect(error)}")
 
@@ -126,7 +126,7 @@ defmodule BroadwayKinesis.Producer do
           {:error, error, events} ->
             ProducerRegistry.update_value(state, false)
 
-            Logger.info("#{inspect(__MODULE__)} handle_info_error")
+            log("handle_info_error")
 
             error("event=error #{inspect(error)}")
 
