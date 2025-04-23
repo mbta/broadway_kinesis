@@ -1,6 +1,8 @@
 # BroadwayKinesis
 
-**TODO: Add description**
+A [Broadway](https://github.com/dashbitco/broadway) connector for [Amazon Kinesis](https://aws.amazon.com/kinesis/).
+
+Utilizes the [SubscribeToShard](https://docs.aws.amazon.com/kinesis/latest/APIReference/API_SubscribeToShard.html) action to stream data.
 
 ## Installation
 
