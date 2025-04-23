@@ -239,7 +239,7 @@ defmodule BroadwayKinesis.SubscribeToShardTest do
       {:ok, _} = TestConsumer.subscribe(bypass)
 
       assert_receive {:event, %{"ContinuationSequenceNumber" => "1"}}
-      assert_receive {:event, %{"ContinuationSequenceNumber" => "2"}}
+      assert_receive {:event, %{"ContinuationSequenceNumber" => "2"}}, 1_000
       assert_receive {:event, %{"ContinuationSequenceNumber" => nil}}
       assert_receive {:error, :closed}
     end
