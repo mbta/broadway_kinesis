@@ -42,6 +42,13 @@ defmodule BroadwayKinesis.ProducerRegistryTest do
 
   describe "update_value" do
     test "responds :ok if successful", %{pid: pid} do
+      :ok = ProducerRegistry.register(%{stream_name: "my-test-stream"}, pid)
+      assert :ok = ProducerRegistry.update_value(%{stream_name: "my-test-stream"}, true, pid)
+
+      assert :ok = ProducerRegistry.update_value(%{stream_name: "my-test-stream"}, false, pid)
+    end
+
+    test "still returns :ok for an unregistered stream", %{pid: pid} do
       assert :ok = ProducerRegistry.update_value(%{stream_name: "my-test-stream"}, true, pid)
 
       assert :ok = ProducerRegistry.update_value(%{stream_name: "my-test-stream"}, false, pid)
