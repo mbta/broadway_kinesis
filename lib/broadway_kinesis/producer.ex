@@ -19,8 +19,7 @@ defmodule BroadwayKinesis.Producer do
       ex_aws: ExAws,
       subscribe_opts: [],
       conn_state: :uninitialized,
-      resume_position: :latest,
-      is_broadway: true
+      resume_position: :latest
     ]
   end
 
