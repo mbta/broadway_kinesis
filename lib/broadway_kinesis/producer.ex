@@ -163,7 +163,7 @@ defmodule BroadwayKinesis.Producer do
           Process.send_after(self(), :reconnect, @reconnection_delay)
           {:noreply, events, %{state | conn_state: :retry}}
         else
-          Kernel.send(state.monitor_pid, {monitor_msg, error})
+          send(state.monitor_pid, {monitor_msg, error})
           {:noreply, events, %{state | conn_state: :retry}}
         end
       end
@@ -214,7 +214,7 @@ defmodule BroadwayKinesis.Producer do
               BroadwayKinesis.SubscribeToShard.starting_position()
             ) :: any()
       def update_resume_position(producer, resume_position) do
-        Kernel.send(producer, {:resume_position_update, resume_position})
+        send(producer, {:resume_position_update, resume_position})
       end
     end
   end
