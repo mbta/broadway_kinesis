@@ -432,5 +432,5 @@ defmodule BroadwayKinesis.SubscribeToShard do
        }
 
   defp starting_position_data({:at_timestamp, %DateTime{} = timestamp}),
-    do: %{"Type" => "AT_TIMESTAMP", "Timestamp" => DateTime.to_iso8601(timestamp)}
+    do: %{"Type" => "AT_TIMESTAMP", "Timestamp" => DateTime.to_unix(timestamp)}
 end

@@ -96,7 +96,7 @@ defmodule BroadwayKinesis.SubscribeToShardTest do
       {{:after_sequence_number, "456"},
        %{"Type" => "AFTER_SEQUENCE_NUMBER", "SequenceNumber" => "456"}},
       {{:at_timestamp, ~U[2021-01-01 12:34:56Z]},
-       %{"Type" => "AT_TIMESTAMP", "Timestamp" => "2021-01-01T12:34:56Z"}}
+       %{"Type" => "AT_TIMESTAMP", "Timestamp" => 1_609_504_496}}
     ]
 
     test "encodes starting positions correctly" do
