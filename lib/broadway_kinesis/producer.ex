@@ -134,8 +134,8 @@ defmodule BroadwayKinesis.Producer do
       end
 
       @impl true
-      def handle_info({:resume_position_update, sequence_number}, state) do
-        {:noreply, [], %{state | resume_position: sequence_number}}
+      def handle_info({:resume_position_update, resume_position}, state) do
+        {:noreply, [], %{state | resume_position: resume_position}}
       end
 
       @impl true
@@ -163,7 +163,7 @@ defmodule BroadwayKinesis.Producer do
           Process.send_after(self(), :reconnect, @reconnection_delay)
           {:noreply, events, %{state | conn_state: :retry}}
         else
-          Kernel.send(state.monitor_pid, {monitor_msg, error})
+          send(state.monitor_pid, {monitor_msg, error})
           {:noreply, events, %{state | conn_state: :retry}}
         end
       end
@@ -172,20 +172,17 @@ defmodule BroadwayKinesis.Producer do
         %{"StreamDescription" => %{"Shards" => [%{"ShardId" => shard_id}]}} =
           unquote(stream_name) |> ExAws.Kinesis.describe_stream() |> state.ex_aws.request!()
 
-        resume_position =
-          if state.resume_position == :latest,
-            do: :latest,
-            else: {:after_sequence_number, state.resume_position}
-
         result =
           BroadwayKinesis.SubscribeToShard.subscribe(
             unquote(consumer_arn),
             shard_id,
-            resume_position,
+            state.resume_position,
             state.subscribe_opts || []
           )
 
-        log("event=subscribe shard_id=#{shard_id} resume_position=#{inspect(resume_position)}")
+        log(
+          "event=subscribe shard_id=#{shard_id} resume_position=#{inspect(state.resume_position)}"
+        )
 
         result
       end
@@ -193,6 +190,32 @@ defmodule BroadwayKinesis.Producer do
       defp log(message), do: Logger.info("#{__MODULE__}: #{message}")
       defp warn(message), do: Logger.warning("#{__MODULE__}: #{message}")
       defp error(message), do: Logger.error("#{__MODULE__}: #{message}")
+
+      # Resume position
+
+      @doc """
+      Update the producer's resume position, from which the producer will request
+      Kinesis messages after the next connection event. Pipelines may use this as a
+      "checkpoint" to mark which messages have already been processed.
+
+      Expected values are as follows:
+
+      - `:latest` : Start from the most recent record in the shard.
+      - `:trim_horizon` : Start from the oldest record in the shard.
+      - `{:at_sequence_number, String.t()}` : Start right at a particular continuation sequence number.
+      - `{:after_sequence_number, String.t()}` : Start right after a particular continuation sequence number.
+      - `{:at_timestamp, DateTime.t()}` : Start at a particular timestamp.
+
+      If no resume position is explicitly set, the producer will default to `:latest`. Note that this may
+      result in gaps, particularly in cases of application downtime.
+      """
+      @spec update_resume_position(
+              Process.dest(),
+              BroadwayKinesis.SubscribeToShard.starting_position()
+            ) :: any()
+      def update_resume_position(producer, resume_position) do
+        send(producer, {:resume_position_update, resume_position})
+      end
     end
   end
 end
