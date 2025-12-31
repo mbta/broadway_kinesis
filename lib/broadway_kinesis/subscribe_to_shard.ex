@@ -87,6 +87,9 @@ defmodule BroadwayKinesis.SubscribeToShard do
   def subscribe(consumer_arn, shard_id, starting_position, options \\ []) do
     req = build_request(consumer_arn, shard_id, starting_position, options)
 
+    # TODO: remove test line injecting fake consume arn
+    # req = build_request("FAKE_CONSUMER_ARN", shard_id, starting_position, options)
+
     with {:ok, conn} <- connect(req), {:ok, conn} <- request(conn, req) do
       {:ok,
        %__MODULE__{

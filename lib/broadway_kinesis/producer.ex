@@ -66,12 +66,34 @@ defmodule BroadwayKinesis.Producer do
         log("BroadwayKinesis.Producer started")
 
         if enable? do
-          {:ok, conn} = subscribe_to_shard(state)
-          ProducerRegistry.register(state)
-          {:producer, %{state | conn: conn, conn_state: :established}}
+          send(self(), :initial_connection)
+          {:producer, %{state | conn: nil, conn_state: :uninitialized}}
         else
           ProducerRegistry.unregister(state)
           {:producer, %{state | conn: :disabled, conn_state: :disabled}}
+        end
+      end
+
+      @impl true
+      def handle_info(:initial_connection, state) do
+        try do
+          case subscribe_to_shard(state) do
+            {:ok, conn} ->
+              ProducerRegistry.register(state)
+              log("Initial Kinesis connection success")
+              {:noreply, [], %{state | conn: conn, conn_state: :established}}
+
+            {:error, error} ->
+              warn("Initial Kinesis connection unsuccessful: #{inspect(error)}")
+              retry_conn(state, [], error, :connection_error)
+              {:noreply, [], %{state | conn: nil, conn_state: :retry}}
+          end
+        rescue
+          e ->
+            # Better logging? couldn't get initial StreamDescription? subscribe to initial shard???
+            warn("Initial connection to Kinesis failed with exception: #{inspect(e)}")
+            retry_conn(state, [], e, :connection_error)
+            {:noreply, [], %{state | conn: nil, conn_state: :retry}}
         end
       end
 
@@ -141,8 +163,22 @@ defmodule BroadwayKinesis.Producer do
       @impl true
       def handle_info(:reconnect, state) do
         warn("Attempting reconnection...")
-        {:ok, new_conn} = subscribe_to_shard(state)
-        {:noreply, [], %{state | conn: new_conn, conn_state: :normal}}
+
+        try do
+          case subscribe_to_shard(state) do
+            {:ok, new_conn} ->
+              log("Reconnection to Kinesis successful")
+              {:noreply, [], %{state | conn: new_conn, conn_state: :normal}}
+
+            {:error, error} ->
+              warn("Reconnection to Kinesis unsucessful: #{inspect(error)}")
+              retry_conn(state, [], error, :reconnect_error)
+          end
+        rescue
+          e ->
+            warn("Reconnection to Kinesis failed with exception: #{inspect(e)}")
+            retry_conn(state, [], e, :reconnection_exception)
+        end
       end
 
       @impl true
@@ -169,6 +205,9 @@ defmodule BroadwayKinesis.Producer do
       end
 
       defp subscribe_to_shard(state) do
+        # Simulate AWS refusing the connection request
+        # raise "MANUAL EXCEPTION: Connection Refused"
+
         %{"StreamDescription" => %{"Shards" => [%{"ShardId" => shard_id}]}} =
           unquote(stream_name) |> ExAws.Kinesis.describe_stream() |> state.ex_aws.request!()
 
