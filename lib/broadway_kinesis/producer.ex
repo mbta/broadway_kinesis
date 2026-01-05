@@ -23,10 +23,14 @@ defmodule BroadwayKinesis.Producer do
     ]
   end
 
-  defmacro __using__(
-             consumer_arn: consumer_arn,
-             stream_name: stream_name
-           ) do
+  defmacro __using__(opts) do
+    consumer_arn = Keyword.fetch!(opts, :consumer_arn)
+    stream_name = Keyword.fetch!(opts, :stream_name)
+
+    # parameterized module to make testing easier
+    subscribe_to_shard_module =
+      Keyword.get(opts, :subscribe_to_shard_module, BroadwayKinesis.SubscribeToShard)
+
     quote do
       @moduledoc """
       Generic Broadway producer that creates Messages from Kinesis events.
@@ -36,7 +40,9 @@ defmodule BroadwayKinesis.Producer do
       @behaviour Broadway.Producer
       @reconnection_delay 70 * 1000
 
-      require BroadwayKinesis.SubscribeToShard
+      # require BroadwayKinesis.SubscribeToShard
+      alias unquote(subscribe_to_shard_module), as: SubscribeToShard
+      require SubscribeToShard
       require ExAws
       require Logger
       alias BroadwayKinesis.Producer.State
@@ -99,8 +105,8 @@ defmodule BroadwayKinesis.Producer do
 
       @impl true
       def handle_info(message, %{conn: conn} = state)
-          when BroadwayKinesis.SubscribeToShard.is_message(conn, message) do
-        case BroadwayKinesis.SubscribeToShard.stream(conn, message) do
+          when SubscribeToShard.is_message(conn, message) do
+        case SubscribeToShard.stream(conn, message) do
           {:ok, new_conn, events} ->
             ProducerRegistry.update_value(state, true)
 
@@ -212,7 +218,7 @@ defmodule BroadwayKinesis.Producer do
           unquote(stream_name) |> ExAws.Kinesis.describe_stream() |> state.ex_aws.request!()
 
         result =
-          BroadwayKinesis.SubscribeToShard.subscribe(
+          SubscribeToShard.subscribe(
             unquote(consumer_arn),
             shard_id,
             state.resume_position,
@@ -250,7 +256,7 @@ defmodule BroadwayKinesis.Producer do
       """
       @spec update_resume_position(
               Process.dest(),
-              BroadwayKinesis.SubscribeToShard.starting_position()
+              SubscribeToShard.starting_position()
             ) :: any()
       def update_resume_position(producer, resume_position) do
         send(producer, {:resume_position_update, resume_position})
