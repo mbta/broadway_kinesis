@@ -86,14 +86,12 @@ defmodule BroadwayKinesis.Producer do
             {:error, error} ->
               warn("Initial Kinesis connection unsuccessful: #{inspect(error)}")
               retry_conn(state, [], error, :connection_error)
-              {:noreply, [], %{state | conn: nil, conn_state: :retry}}
           end
         rescue
           e ->
             # Better logging? couldn't get initial StreamDescription? subscribe to initial shard???
             warn("Initial connection to Kinesis failed with exception: #{inspect(e)}")
             retry_conn(state, [], e, :connection_error)
-            {:noreply, [], %{state | conn: nil, conn_state: :retry}}
         end
       end
 
