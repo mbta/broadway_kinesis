@@ -205,9 +205,6 @@ defmodule BroadwayKinesis.Producer do
       end
 
       defp subscribe_to_shard(state) do
-        # Simulate AWS refusing the connection request
-        # raise "MANUAL EXCEPTION: Connection Refused"
-
         %{"StreamDescription" => %{"Shards" => [%{"ShardId" => shard_id}]}} =
           unquote(stream_name) |> ExAws.Kinesis.describe_stream() |> state.ex_aws.request!()
 

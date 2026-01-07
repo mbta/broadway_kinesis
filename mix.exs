@@ -31,6 +31,7 @@ defmodule BroadwayKinesis.MixProject do
       {:hackney, "~> 1.9"},
       {:jason, "~> 1.4"},
       {:mint, "~> 1.0"},
+      {:mock, "~> 0.3.9", only: :test},
       {:sweet_xml, "~> 0.6"}
     ]
   end
