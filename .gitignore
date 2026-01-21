@@ -21,3 +21,5 @@ broadway_kinesis-*.tar
 
 # Temporary files, for example, from tests.
 /tmp/
+
+.elixir_ls/
