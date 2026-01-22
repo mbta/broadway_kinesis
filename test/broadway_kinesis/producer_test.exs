@@ -17,6 +17,8 @@ defmodule BroadwayKinesis.ProducerTest do
   end
 
   defmodule FakeProducer do
+    use BroadwayKinesis.Logger
+
     use BroadwayKinesis.Producer,
       consumer_arn: "fake_consumer_arn",
       stream_name: "fake_stream_name"
