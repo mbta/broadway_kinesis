@@ -1,6 +1,5 @@
 defmodule BroadwayKinesis.ProducerTest do
   use ExUnit.Case
-
   alias BroadwayKinesis.ProducerRegistry
   import ExUnit.CaptureLog
   import Mock
