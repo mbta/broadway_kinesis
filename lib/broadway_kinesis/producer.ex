@@ -1,6 +1,7 @@
 defmodule BroadwayKinesis.Producer do
   require BroadwayKinesis.SubscribeToShard
   require ExAws
+  use BroadwayKinesis.Logger
   alias BroadwayKinesis.ProducerRegistry
 
   defmodule State do
@@ -220,10 +221,6 @@ defmodule BroadwayKinesis.Producer do
 
         result
       end
-
-      defp log(message), do: Logger.info("#{__MODULE__}: #{message}")
-      defp warn(message), do: Logger.warning("#{__MODULE__}: #{message}")
-      defp error(message), do: Logger.error("#{__MODULE__}: #{message}")
 
       # Resume position
 

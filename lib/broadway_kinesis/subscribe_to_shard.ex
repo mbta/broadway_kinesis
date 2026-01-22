@@ -20,6 +20,7 @@ defmodule BroadwayKinesis.SubscribeToShard do
 
   alias Mint.HTTP2
   require Mint.HTTP
+  use BroadwayKinesis.Logger
 
   @content_type "application/x-amz-json-1.1"
   @target_operation "Kinesis_20131202.SubscribeToShard"
@@ -213,6 +214,10 @@ defmodule BroadwayKinesis.SubscribeToShard do
     else
       # Connection is closed for writing; cannot make any more requests (re-request will occur
       # later when we get the final message and see the connection is also closed for reading)
+      log(
+        "event=subscribe_to_shard_connection_closed_for_writing consumer_arn=#{state.consumer_arn}"
+      )
+
       {:ok, state}
     end
   end
