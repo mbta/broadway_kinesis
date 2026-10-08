@@ -29,6 +29,19 @@ defmodule BroadwayKinesis.Producer do
              stream_name: stream_name
            ) do
     quote do
+      use BroadwayKinesis.Producer,
+        consumer_arn: unquote(consumer_arn),
+        stream_name: unquote(stream_name),
+        initial_state_fn: fn -> %{} end
+    end
+  end
+
+  defmacro __using__(
+             consumer_arn: consumer_arn,
+             stream_name: stream_name,
+             initial_state_fn: initial_state_fn
+           ) do
+    quote do
       @moduledoc """
       Generic Broadway producer that creates Messages from Kinesis events.
       """
@@ -42,12 +55,18 @@ defmodule BroadwayKinesis.Producer do
       require Logger
       alias BroadwayKinesis.Producer.State
 
-      @spec init_state(Enum.t()) :: State.t()
-      defp init_state(overrides) do
+      @spec init_state(Map.t(), Enum.t()) :: State.t()
+      defp init_state(initial_state, overrides) do
+        state =
+          Map.merge(initial_state, %{
+            consumer_arn: unquote(consumer_arn),
+            stream_name: unquote(stream_name)
+          })
+
         struct!(
           State,
           Map.merge(
-            %{consumer_arn: unquote(consumer_arn), stream_name: unquote(stream_name)},
+            state,
             overrides
           )
         )
@@ -55,6 +74,13 @@ defmodule BroadwayKinesis.Producer do
 
       @impl true
       def init(opts) do
+        initial_state =
+          if unquote(initial_state_fn) do
+            unquote(initial_state_fn).()
+          else
+            %{}
+          end
+
         state_overrides = Keyword.get(opts, :state, %{})
         enable? = Keyword.get(opts, :enable?, true)
 
@@ -62,7 +88,7 @@ defmodule BroadwayKinesis.Producer do
           consumer_arn: consumer_arn,
           resume_position: resume_position,
           stream_name: stream_name
-        } = state = init_state(state_overrides)
+        } = state = init_state(initial_state, state_overrides)
 
         log("BroadwayKinesis.Producer started")
 
