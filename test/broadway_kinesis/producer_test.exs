@@ -24,6 +24,15 @@ defmodule BroadwayKinesis.ProducerTest do
       stream_name: "fake_stream_name"
   end
 
+  defmodule FakeProducerWithInitialStateFn do
+    use BroadwayKinesis.Logger
+
+    use BroadwayKinesis.Producer,
+      consumer_arn: "fake_consumer_arn",
+      stream_name: "fake_stream_name",
+      initial_state_fn: fn -> %{subscribe_opts: [foo: :bar]} end
+  end
+
   describe "initial Kinesis connection" do
     test "can connect to AWS Shard" do
       {:ok, _pid} =
@@ -80,6 +89,33 @@ defmodule BroadwayKinesis.ProducerTest do
         end)
 
       assert logs =~ "Initial connection to Kinesis failed with exception:"
+    end
+  end
+
+  describe "initial_state_fn" do
+    test "accepts initial_state_fn/0 callback" do
+      old_log_level = Logger.level()
+
+      on_exit(fn -> Logger.configure(level: old_log_level) end)
+
+      Logger.configure(level: :warning)
+
+      {:ok, _pid} =
+        start_supervised(
+          {ProducerRegistry,
+           [name: BroadwayKinesis.ProducerRegistry, registry_name: :test_registry]},
+          restart: :temporary
+        )
+
+      with_mock BroadwayKinesis.SubscribeToShard,
+        subscribe: fn _arn, _shard, _pos, _opts -> {:ok, :conn} end do
+        {:ok, pid} =
+          GenStage.start_link(FakeProducerWithInitialStateFn,
+            state: %{ex_aws: FakeAwsSuccess, monitor_pid: self()}
+          )
+
+        assert %{state: %{subscribe_opts: [foo: :bar]}} = :sys.get_state(pid)
+      end
     end
   end
 end
