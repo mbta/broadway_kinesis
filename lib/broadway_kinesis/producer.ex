@@ -74,6 +74,9 @@ defmodule BroadwayKinesis.Producer do
 
       @impl true
       def init(opts) do
+        # `initial_state_fn` allows us to provide initial state from within the module
+        # that uses BroadwayKinesis.Producer, not just from where the resulting GenServer
+        # is started.
         initial_state = unquote(initial_state_fn).()
 
         state_overrides = Keyword.get(opts, :state, %{})
