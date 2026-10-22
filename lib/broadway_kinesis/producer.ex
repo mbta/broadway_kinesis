@@ -55,7 +55,7 @@ defmodule BroadwayKinesis.Producer do
       require Logger
       alias BroadwayKinesis.Producer.State
 
-      @spec init_state(Map.t(), Enum.t()) :: State.t()
+      @spec init_state(map(), Enum.t()) :: State.t()
       defp init_state(initial_state, overrides) do
         state =
           Map.merge(initial_state, %{
