@@ -28,7 +28,6 @@ defmodule BroadwayKinesis.MixProject do
       {:event_stream, "~> 0.1.0"},
       {:ex_aws, "~> 2.7.0"},
       {:ex_aws_kinesis, "~> 2.0"},
-      {:hackney, "~> 4.5.2"},
       {:jason, "~> 1.4"},
       {:mint, "~> 1.0"},
       {:mock, "~> 0.3.9", only: :test},
