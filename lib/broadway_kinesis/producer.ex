@@ -139,7 +139,8 @@ defmodule BroadwayKinesis.Producer do
 
             log("handle_info_success")
 
-            {:noreply, events, %{state | conn: new_conn, conn_state: :normal, last_event_at: now()}}
+            {:noreply, events,
+             %{state | conn: new_conn, conn_state: :normal, last_event_at: now()}}
 
           {:error, {"ResourceInUseException", _} = error, events} ->
             ProducerRegistry.update_value(state, false)
