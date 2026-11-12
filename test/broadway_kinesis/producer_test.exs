@@ -150,6 +150,51 @@ defmodule BroadwayKinesis.ProducerTest do
       end
     end
 
+    test "a freshly received event resets the clock, avoiding a false reconnect" do
+      {:ok, _pid} =
+        start_supervised(
+          {ProducerRegistry,
+           [name: BroadwayKinesis.ProducerRegistry, registry_name: :test_registry]},
+          restart: :temporary
+        )
+
+      with_mock BroadwayKinesis.SubscribeToShard,
+        subscribe: fn _arn, _shard, _pos, _opts -> {:ok, :conn} end do
+        state_overrides = %{
+          ex_aws: FakeAwsSuccess,
+          monitor_pid: self(),
+          liveness_check_interval: 40,
+          liveness_timeout: 70
+        }
+
+        capture_log(fn ->
+          {:ok, pid} = GenStage.start_link(FakeProducer, state: state_overrides)
+
+          # Simulate a (possibly empty) event arriving partway through the first
+          # liveness_check_interval, which is what the main streaming handle_info
+          # clause would do by updating last_event_at. This is done directly via
+          # :sys.replace_state since the mocked conn (a bare atom) can't satisfy
+          # the is_message/2 guard needed to drive a real message through.
+          Process.sleep(25)
+
+          :sys.replace_state(pid, fn full_state ->
+            update_in(full_state.state.last_event_at, fn _ ->
+              System.monotonic_time(:millisecond)
+            end)
+          end)
+
+          # By the second check (~80ms after the original connection), elapsed
+          # time since the *original* connection would exceed liveness_timeout
+          # (70ms), which would have forced a reconnect. Because last_event_at
+          # was refreshed at ~25ms, the connection is correctly treated as alive
+          # through this check (elapsed ~55ms < 70ms).
+          refute_receive {:liveness_timeout, _}, 70
+
+          assert %{state: %{conn_state: :established}} = :sys.get_state(pid)
+        end)
+      end
+    end
+
     test "ignores a stale liveness check while a reconnection is already pending" do
       state_overrides = %{
         ex_aws: FakeAwsFail,
