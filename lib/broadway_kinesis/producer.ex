@@ -145,16 +145,12 @@ defmodule BroadwayKinesis.Producer do
           {:error, {"ResourceInUseException", _} = error, events} ->
             ProducerRegistry.update_value(state, false)
 
-            log("handle_info_error")
-
             warn("event=resource_in_use_exception #{inspect(error)}")
 
             retry_conn(state, events, error, :resource_in_use_exception)
 
           {:error, %Mint.TransportError{reason: :closed} = error, events} ->
             ProducerRegistry.update_value(state, false)
-
-            log("handle_info_error")
 
             warn("event=mint_transport_error #{inspect(error)}")
 
@@ -163,8 +159,6 @@ defmodule BroadwayKinesis.Producer do
           {:error, {:http_error, _, _} = error, events} ->
             ProducerRegistry.update_value(state, false)
 
-            log("handle_info_error")
-
             warn("event=http_error #{inspect(error)}")
 
             retry_conn(state, events, error, :http_error)
@@ -172,16 +166,12 @@ defmodule BroadwayKinesis.Producer do
           {:error, :closed = error, events} ->
             ProducerRegistry.update_value(state, false)
 
-            log("handle_info_error")
-
             warn("event=subscribe_to_shard_closed #{inspect(error)}")
 
             retry_conn(state, events, error, :closed)
 
           {:error, error, events} ->
             ProducerRegistry.update_value(state, false)
-
-            log("handle_info_error")
 
             error("event=error #{inspect(error)}")
 
