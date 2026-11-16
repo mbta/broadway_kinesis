@@ -9,7 +9,10 @@ defmodule BroadwayKinesis.Producer do
             conn: BroadwayKinesis.SubscribeToShard.t() | nil,
             consumer_arn: String.t(),
             resume_position: BroadwayKinesis.SubscribeToShard.starting_position(),
-            stream_name: String.t()
+            stream_name: String.t(),
+            last_event_at: integer | nil,
+            liveness_check_interval: pos_integer,
+            liveness_timeout: pos_integer
           }
 
     defstruct [
@@ -17,10 +20,17 @@ defmodule BroadwayKinesis.Producer do
       :consumer_arn,
       :stream_name,
       :monitor_pid,
+      :last_event_at,
       ex_aws: ExAws,
       subscribe_opts: [],
       conn_state: :uninitialized,
-      resume_position: :latest
+      resume_position: :latest,
+      # How often (ms) to check whether the connection has gone silent.
+      liveness_check_interval: 30 * 1000,
+      # How long (ms) the connection may go without receiving any event (including
+      # the periodic heartbeats Kinesis pushes even when there are no new records)
+      # before it's considered dead and a reconnection is forced.
+      liveness_timeout: 90 * 1000
     ]
   end
 
@@ -106,7 +116,7 @@ defmodule BroadwayKinesis.Producer do
             {:ok, conn} ->
               ProducerRegistry.register(state)
               log("Initial Kinesis connection success")
-              {:noreply, [], %{state | conn: conn, conn_state: :established}}
+              {:noreply, [], established_connection(state, conn, :established)}
 
             {:error, error} ->
               warn("Initial Kinesis connection unsuccessful: #{inspect(error)}")
@@ -129,7 +139,8 @@ defmodule BroadwayKinesis.Producer do
 
             log("handle_info_success")
 
-            {:noreply, events, %{state | conn: new_conn, conn_state: :normal}}
+            {:noreply, events,
+             %{state | conn: new_conn, conn_state: :normal, last_event_at: now()}}
 
           {:error, {"ResourceInUseException", _} = error, events} ->
             ProducerRegistry.update_value(state, false)
@@ -191,7 +202,7 @@ defmodule BroadwayKinesis.Producer do
           case subscribe_to_shard(state) do
             {:ok, new_conn} ->
               log("Reconnection to Kinesis successful")
-              {:noreply, [], %{state | conn: new_conn, conn_state: :normal}}
+              {:noreply, [], established_connection(state, new_conn, :normal)}
 
             {:error, error} ->
               warn("Reconnection to Kinesis unsucessful: #{inspect(error)}")
@@ -202,6 +213,32 @@ defmodule BroadwayKinesis.Producer do
             warn("Reconnection to Kinesis failed with exception: #{inspect(e)}")
             retry_conn(state, [], e, :reconnection_exception)
         end
+      end
+
+      @impl true
+      def handle_info(:liveness_check, %{conn_state: conn_state} = state)
+          when conn_state in [:established, :normal] do
+        elapsed = now() - state.last_event_at
+
+        if elapsed >= state.liveness_timeout do
+          warn(
+            "event=liveness_timeout elapsed_ms=#{elapsed} timeout_ms=#{state.liveness_timeout} " <>
+              "message=\"No events received from Kinesis within the configured timeout; forcing reconnection\""
+          )
+
+          retry_conn(state, [], :liveness_timeout_exceeded, :liveness_timeout)
+        else
+          schedule_liveness_check(state)
+          {:noreply, [], state}
+        end
+      end
+
+      @impl true
+      def handle_info(:liveness_check, state) do
+        # Ignore stale liveness checks that fire while we're not actively connected
+        # (e.g. mid-retry, disabled, or not yet connected). A fresh check is
+        # scheduled whenever a new connection is established.
+        {:noreply, [], state}
       end
 
       @impl true
@@ -225,6 +262,17 @@ defmodule BroadwayKinesis.Producer do
           send(state.monitor_pid, {monitor_msg, error})
           {:noreply, events, %{state | conn_state: :retry}}
         end
+      end
+
+      defp now, do: System.monotonic_time(:millisecond)
+
+      defp schedule_liveness_check(state) do
+        Process.send_after(self(), :liveness_check, state.liveness_check_interval)
+      end
+
+      defp established_connection(state, conn, conn_state) do
+        schedule_liveness_check(state)
+        %{state | conn: conn, conn_state: conn_state, last_event_at: now()}
       end
 
       defp subscribe_to_shard(state) do
