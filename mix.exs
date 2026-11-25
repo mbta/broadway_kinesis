@@ -26,7 +26,7 @@ defmodule BroadwayKinesis.MixProject do
       {:bypass, "~> 2.1", only: :test},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:event_stream, "~> 0.1.0"},
-      {:ex_aws, "~> 2.7.0"},
+      {:ex_aws, "~> 2.8.2"},
       {:ex_aws_kinesis, "~> 2.0"},
       {:jason, "~> 1.4"},
       {:mint, "~> 1.0"},
